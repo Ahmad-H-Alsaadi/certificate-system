@@ -34,13 +34,26 @@
             top: 28.5%;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 82px;
+            font-size: 7.3vw; /* Responsive font size based on container width */
             font-family: 'LyonArabic', Arial, sans-serif;
             color: #ec9402;
             font-weight: bold;
             text-align: center;
             pointer-events: none;
             white-space: nowrap;
+            max-width: 90%;
+        }
+        /* Desktop: limit max font size */
+        @media (min-width: 1125px) {
+            #name {
+                font-size: 82px;
+            }
+        }
+        /* Mobile: smaller font */
+        @media (max-width: 600px) {
+            #name {
+                font-size: 5.5vw;
+            }
         }
         .button {
             position: absolute;
