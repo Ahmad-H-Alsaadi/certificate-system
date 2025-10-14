@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شهادة</title>
+    <style>
+        @font-face {
+            font-family: 'LyonArabic';
+            src: url('LyonArabicDisplay.otf') format('opentype');
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: #f5f5f5;
+        }
+        #container {
+            position: relative;
+            width: 100%;
+            max-width: 1125px;
+            margin: 0 auto;
+            background: white;
+        }
+        img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        #name {
+            position: absolute;
+            top: 28.5%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 82px;
+            font-family: 'LyonArabic', Arial, sans-serif;
+            color: #ec9402;
+            font-weight: bold;
+            text-align: center;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .button {
+            position: absolute;
+            cursor: pointer;
+            opacity: 0;
+        }
+        #acceptBtn {
+            top: 81.2%;
+            left: 53%;
+            width: 35.7%;
+            height: 3.4%;
+        }
+        #rejectBtn {
+            top: 81.2%;
+            left: 12.2%;
+            width: 35.7%;
+            height: 3.4%;
+        }
+        .message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 8px;
+            font-size: 18px;
+            display: none;
+            z-index: 1000;
+        }
+        .message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="message" id="message"></div>
+    <div id="container">
+        <img src="design.png" alt="Certificate">
+        <div id="name"></div>
+        <div id="acceptBtn" class="button"></div>
+        <div id="rejectBtn" class="button"></div>
+    </div>
+
+    <script>
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwo95Q1YXh8d01pss4Fj6NN4qjeoCAjL147ny2vw4P_-M0-LkH-Ngj11HgFKZtJk79T/exec';
+
+        // List of all users with their IDs
+        const USERS = {
+            'xa9k2m7p': 'سعادة الأستاذ: عبدالله عصام',
+            'yb0l3n8q': 'سعادة الأستاذ: ابراهيم اليوسف',
+            'zc1m4o9r': 'سعادة الأستاذ: أحمد عصام الدين',
+            'ad2n5p0s': 'سعادة الأستاذ: عبدالله العلاوي',
+            'be3o6q1t': 'سعادة الأستاذ: الوليد الشهري',
+            'cf4p7r2u': 'سعادة الأستاذ: عكاشة هارون',
+            'dg5q8s3v': 'سعادة الأستاذ: عبدالرحمن الزهراني',
+            'eh6r9t4w': 'سعادة الأستاذ: محمد كامل',
+            'fi7s0u5x': 'سعادة الأستاذ: عيسى الحازمي',
+            'gj8t1v6y': 'سعادة الأستاذ: ابراهيم محمد',
+            'hk9u2w7z': 'سعادة الأستاذ: محمد عيسى',
+            'il0v3x8a': 'سعادة الأستاذ: عبدالله العوفي',
+            'jm1w4y9b': 'سعادة الدكتور: أيمن السعيدي',
+            'kn2x5z0c': 'سعادة الأستاذ: شرف الشريف',
+            'lo3y6a1d': 'سعادة الأستاذ: مصطفى جويد',
+            'mp4z7b2e': 'سعادة الأستاذ: رشاد القرني',
+            'nq5a8c3f': 'سعادة الأستاذ: عبدالله القحمي'
+        };
+
+        // Get user ID from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('id');
+        const userName = USERS[userId];
+
+        // Display name or show error
+        if (!userName) {
+            document.getElementById('name').textContent = 'رابط غير صحيح';
+            document.getElementById('acceptBtn').style.display = 'none';
+            document.getElementById('rejectBtn').style.display = 'none';
+            alert('رابط غير صحيح. يرجى التحقق من الرابط.');
+        } else {
+            document.getElementById('name').textContent = userName;
+        }
+
+        async function saveResponse(action) {
+            const msg = document.getElementById('message');
+
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        userName: userName,
+                        action: action,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                msg.textContent = `تم حفظ اختيارك: ${action}`;
+                msg.style.background = action === 'قبول' ? '#4CAF50' : '#f44336';
+                msg.classList.add('show');
+
+                setTimeout(() => {
+                    msg.classList.remove('show');
+                }, 3000);
+
+                console.log('Response saved:', { userId, userName, action });
+            } catch (error) {
+                console.error('Error saving response:', error);
+                msg.textContent = 'حدث خطأ في حفظ الاختيار';
+                msg.style.background = '#f44336';
+                msg.classList.add('show');
+
+                setTimeout(() => {
+                    msg.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        document.getElementById('acceptBtn').onclick = () => {
+            if (userName) saveResponse('قبول');
+        };
+
+        document.getElementById('rejectBtn').onclick = () => {
+            if (userName) saveResponse('رفض');
+        };
+    </script>
+</body>
+</html>
