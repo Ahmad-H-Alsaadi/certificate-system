@@ -51,6 +51,11 @@
             cursor: pointer;
             opacity: 0;
             z-index: 10;
+            transition: opacity 0.3s;
+        }
+        .button.disabled {
+            cursor: not-allowed;
+            pointer-events: none;
         }
         #acceptBtn {
             top: 81.2%;
@@ -128,12 +133,17 @@
             font-weight: bold;
         }
 
+        .modal-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .btn-confirm {
             background-color: #ec9402;
             color: white;
         }
 
-        .btn-confirm:hover {
+        .btn-confirm:hover:not(:disabled) {
             background-color: #d68502;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(236, 148, 2, 0.3);
@@ -144,7 +154,7 @@
             color: #666;
         }
 
-        .btn-cancel:hover {
+        .btn-cancel:hover:not(:disabled) {
             background-color: #e0e0e0;
             transform: translateY(-2px);
         }
@@ -205,23 +215,39 @@
     </div>
 
     <script>
-        // Version 2.0 - Force cache refresh
+        // Version 2.1 - Prevent multiple responses
         const USER_ID = 'xa9k2m7p';
         const USER_NAME = 'الأستاذ: عبدالله عصام';
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwo95Q1YXh8d01pss4Fj6NN4qjeoCAjL147ny2vw4P_-M0-LkH-Ngj11HgFKZtJk79T/exec';
 
         let currentAction = '';
+        let hasResponded = false; // Flag to prevent multiple responses
 
         // Wait for DOM to fully load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded - Version 2.0');
+            console.log('DOM loaded - Version 2.1');
 
             const confirmModal = document.getElementById('confirmModal');
             const successModal = document.getElementById('successModal');
             const confirmMessage = document.getElementById('confirmMessage');
             const successMessage = document.getElementById('successMessage');
+            const acceptBtn = document.getElementById('acceptBtn');
+            const rejectBtn = document.getElementById('rejectBtn');
+
+            function disableButtons() {
+                console.log('Disabling all buttons');
+                acceptBtn.classList.add('disabled');
+                rejectBtn.classList.add('disabled');
+                acceptBtn.style.cursor = 'not-allowed';
+                rejectBtn.style.cursor = 'not-allowed';
+            }
 
             function showConfirmation(action) {
+                if (hasResponded) {
+                    console.log('User has already responded, ignoring click');
+                    return;
+                }
+
                 console.log('Showing confirmation for:', action);
                 currentAction = action;
                 
@@ -263,6 +289,10 @@
             async function saveResponse(action) {
                 console.log('Saving response:', action);
                 
+                // Mark as responded immediately to prevent double clicks
+                hasResponded = true;
+                disableButtons();
+                
                 try {
                     await fetch(GOOGLE_SCRIPT_URL, {
                         method: 'POST',
@@ -287,17 +317,29 @@
             }
 
             // Accept button click
-            document.getElementById('acceptBtn').addEventListener('click', function(e) {
+            acceptBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
+                
+                if (hasResponded) {
+                    console.log('Already responded, ignoring click');
+                    return;
+                }
+                
                 console.log('Accept button clicked');
                 showConfirmation('قبول');
             });
 
             // Reject button click
-            document.getElementById('rejectBtn').addEventListener('click', function(e) {
+            rejectBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
+                
+                if (hasResponded) {
+                    console.log('Already responded, ignoring click');
+                    return;
+                }
+                
                 console.log('Reject button clicked');
                 showConfirmation('رفض');
             });
