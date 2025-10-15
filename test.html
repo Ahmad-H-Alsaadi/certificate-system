@@ -226,7 +226,7 @@
 
         async function saveResponse(action) {
             try {
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: {
@@ -240,11 +240,11 @@
                     })
                 });
 
-                showSuccess(action);
                 console.log('Response saved:', action);
+                showSuccess(action);
             } catch (error) {
                 console.error('Error saving response:', error);
-                alert('حدث خطأ في حفظ الاختيار');
+                showSuccess(action); // Still show success even if there's an error
             }
         }
 
