@@ -13,6 +13,7 @@
         * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
         body {
             background: #f5f5f5;
@@ -46,6 +47,7 @@
             position: absolute;
             cursor: pointer;
             opacity: 0;
+            z-index: 10;
         }
         #acceptBtn {
             top: 81.2%;
@@ -64,18 +66,22 @@
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 9999;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.6);
             animation: fadeIn 0.3s;
+        }
+
+        .modal.show {
+            display: block;
         }
 
         .modal-content {
             background-color: white;
-            margin: 15% auto;
+            margin: 10% auto;
             padding: 40px;
             border-radius: 15px;
             width: 90%;
@@ -84,6 +90,7 @@
             font-family: 'LyonArabic', Arial, sans-serif;
             box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
             animation: slideDown 0.3s;
+            position: relative;
         }
 
         .modal-title {
@@ -104,6 +111,7 @@
             display: flex;
             gap: 15px;
             justify-content: center;
+            flex-wrap: wrap;
         }
 
         .modal-btn {
@@ -172,7 +180,7 @@
     <!-- Confirmation Modal -->
     <div id="confirmModal" class="modal">
         <div class="modal-content">
-            <div class="modal-title" id="confirmTitle">تأكيد الاختيار</div>
+            <div class="modal-title">تأكيد الاختيار</div>
             <div class="modal-message" id="confirmMessage"></div>
             <div class="modal-buttons">
                 <button class="modal-btn btn-confirm" id="confirmYes">نعم، متأكد</button>
@@ -206,25 +214,47 @@
         const successMessage = document.getElementById('successMessage');
 
         function showConfirmation(action) {
+            console.log('Showing confirmation for:', action);
             currentAction = action;
+            
             if (action === 'قبول') {
                 confirmMessage.textContent = 'هل أنت متأكد من رغبتك في قبول الشهادة؟';
             } else {
                 confirmMessage.textContent = 'هل أنت متأكد من رغبتك في رفض الشهادة؟';
             }
+            
+            confirmModal.classList.add('show');
             confirmModal.style.display = 'block';
         }
 
+        function hideConfirmation() {
+            console.log('Hiding confirmation');
+            confirmModal.classList.remove('show');
+            confirmModal.style.display = 'none';
+        }
+
         function showSuccess(action) {
+            console.log('Showing success for:', action);
+            
             if (action === 'قبول') {
                 successMessage.textContent = 'تم قبول الشهادة بنجاح. نتطلع للعمل معك قريباً!';
             } else {
                 successMessage.textContent = 'تم تسجيل ردك. نشكرك على وقتك واهتمامك.';
             }
+            
+            successModal.classList.add('show');
             successModal.style.display = 'block';
         }
 
+        function hideSuccess() {
+            console.log('Hiding success');
+            successModal.classList.remove('show');
+            successModal.style.display = 'none';
+        }
+
         async function saveResponse(action) {
+            console.log('Saving response:', action);
+            
             try {
                 await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
@@ -240,49 +270,79 @@
                     })
                 });
 
-                console.log('Response saved:', action);
+                console.log('Response saved successfully');
                 showSuccess(action);
             } catch (error) {
                 console.error('Error saving response:', error);
-                showSuccess(action); // Still show success even if there's an error
+                // Show success anyway since we can't verify with no-cors
+                showSuccess(action);
             }
         }
 
         // Accept button click
-        document.getElementById('acceptBtn').onclick = () => {
+        document.getElementById('acceptBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Accept button clicked');
             showConfirmation('قبول');
-        };
+        });
 
         // Reject button click
-        document.getElementById('rejectBtn').onclick = () => {
+        document.getElementById('rejectBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Reject button clicked');
             showConfirmation('رفض');
-        };
+        });
 
         // Confirm Yes button
-        document.getElementById('confirmYes').onclick = () => {
-            confirmModal.style.display = 'none';
+        document.getElementById('confirmYes').addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Confirm Yes clicked');
+            hideConfirmation();
             saveResponse(currentAction);
-        };
+        });
 
         // Confirm No button
-        document.getElementById('confirmNo').onclick = () => {
-            confirmModal.style.display = 'none';
-        };
+        document.getElementById('confirmNo').addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Confirm No clicked');
+            hideConfirmation();
+        });
 
         // Success OK button
-        document.getElementById('successOk').onclick = () => {
-            successModal.style.display = 'none';
-        };
+        document.getElementById('successOk').addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Success OK clicked');
+            hideSuccess();
+        });
 
         // Close modal when clicking outside
-        window.onclick = (event) => {
+        window.addEventListener('click', function(event) {
             if (event.target === confirmModal) {
-                confirmModal.style.display = 'none';
+                hideConfirmation();
             }
             if (event.target === successModal) {
-                successModal.style.display = 'none';
+                hideSuccess();
             }
-        };
+        });
+
+        // Prevent body scrolling when modal is open
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (confirmModal.style.display === 'block' || successModal.style.display === 'block') {
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    document.body.style.overflow = 'auto';
+                }
+            });
+        });
+
+        observer.observe(confirmModal, { attributes: true, attributeFilter: ['style'] });
+        observer.observe(successModal, { attributes: true, attributeFilter: ['style'] });
     </script>
 </body>
 </html>
