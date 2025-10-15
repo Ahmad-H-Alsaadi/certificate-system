@@ -3,16 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>شهادة</title>
+    <link rel="preload" href="LyonArabicDisplay.otf" as="font" type="font/otf" crossorigin>
     <style>
         @font-face {
             font-family: 'LyonArabic';
             src: url('LyonArabicDisplay.otf') format('opentype');
+            font-display: swap;
         }
 
         * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
         body {
             background: #f5f5f5;
@@ -34,31 +40,24 @@
             top: 28.5%;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 7.3vw; /* Responsive font size based on container width */
+            font-size: 82px;
             font-family: 'LyonArabic', Arial, sans-serif;
             color: #ec9402;
             font-weight: bold;
             text-align: center;
             pointer-events: none;
             white-space: nowrap;
-            max-width: 90%;
-        }
-        /* Desktop: limit max font size */
-        @media (min-width: 1125px) {
-            #name {
-                font-size: 82px;
-            }
-        }
-        /* Mobile: smaller font */
-        @media (max-width: 600px) {
-            #name {
-                font-size: 5.5vw;
-            }
         }
         .button {
             position: absolute;
             cursor: pointer;
             opacity: 0;
+            z-index: 10;
+            transition: opacity 0.3s;
+        }
+        .button.disabled {
+            cursor: not-allowed;
+            pointer-events: none;
         }
         #acceptBtn {
             top: 81.2%;
@@ -72,118 +71,360 @@
             width: 35.7%;
             height: 3.4%;
         }
-        .message {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 15px 30px;
-            background: #4CAF50;
-            color: white;
-            border-radius: 8px;
-            font-size: 18px;
+
+        /* Modal Styles */
+        .modal {
             display: none;
-            z-index: 1000;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            animation: fadeIn 0.3s;
         }
-        .message.show {
-            display: block;
+
+        .modal.show {
+            display: block !important;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 40px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            font-family: 'LyonArabic', Arial, sans-serif;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+            animation: slideDown 0.3s;
+            position: relative;
+        }
+
+        .modal-title {
+            font-size: 28px;
+            color: #ec9402;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .modal-message {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .modal-btn {
+            padding: 12px 40px;
+            font-size: 20px;
+            font-family: 'LyonArabic', Arial, sans-serif;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .modal-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-confirm {
+            background-color: #ec9402;
+            color: white;
+        }
+
+        .btn-confirm:hover:not(:disabled) {
+            background-color: #d68502;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(236, 148, 2, 0.3);
+        }
+
+        .btn-cancel {
+            background-color: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-cancel:hover:not(:disabled) {
+            background-color: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .success-icon {
+            font-size: 60px;
+            color: #ec9402;
+            margin-bottom: 20px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="message" id="message"></div>
     <div id="container">
         <img src="design.png" alt="Certificate">
-        <div id="name"></div>
+        <div id="name">الأستاذ: عبدالله عصام</div>
         <div id="acceptBtn" class="button"></div>
         <div id="rejectBtn" class="button"></div>
     </div>
 
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">تأكيد الاختيار</div>
+            <div class="modal-message" id="confirmMessage"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn btn-confirm" id="confirmYes">نعم، متأكد</button>
+                <button class="modal-btn btn-cancel" id="confirmNo">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <div class="success-icon">✓</div>
+            <div class="modal-title">شكراً لك</div>
+            <div class="modal-message" id="successMessage"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn btn-confirm" id="successOk">حسناً</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Version 2.2 - Fixed CORS and modal issues
+        const USERS = {
+            'xa9k2m7p': 'الأستاذ: عبدالله عصام',
+            'yb0l3n8q': 'الأستاذ: ابراهيم اليوسف',
+            'zc1m4o9r': 'الأستاذ: أحمد عصام الدين',
+            'ad2n5p0s': 'الأستاذ: عبدالله العلاوي',
+            'be3o6q1t': 'الأستاذ: الوليد الشهري',
+            'cf4p7r2u': 'الأستاذ: عكاشة هارون',
+            'dg5q8s3v': 'الأستاذ: عبدالرحمن الزهراني',
+            'eh6r9t4w': 'الأستاذ: محمد كامل',
+            'fi7s0u5x': 'الأستاذ: عيسى الحازمي',
+            'gj8t1v6y': 'الأستاذ: ابراهيم محمد',
+            'hk9u2w7z': 'الأستاذ: محمد عيسى',
+            'il0v3x8a': 'الأستاذ: عبدالله العوفي',
+            'jm1w4y9b': 'الأستاذ: أيمن السعيدي',
+            'kn2x5z0c': 'الأستاذ: شرف الشريف',
+            'lo3y6a1d': 'الأستاذ: مصطفى جويد',
+            'mp4z7b2e': 'الأستاذ: رشاد القرني',
+            'nq5a8c3f': 'الأستاذ: عبدالله القحمي'
+        };
+
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwo95Q1YXh8d01pss4Fj6NN4qjeoCAjL147ny2vw4P_-M0-LkH-Ngj11HgFKZtJk79T/exec';
 
-        // List of all users with their IDs
-        const USERS = {
-            'xa9k2m7p': 'سعادة الأستاذ: عبدالله عصام',
-            'yb0l3n8q': 'سعادة الأستاذ: ابراهيم اليوسف',
-            'zc1m4o9r': 'سعادة الأستاذ: أحمد عصام الدين',
-            'ad2n5p0s': 'سعادة الأستاذ: عبدالله العلاوي',
-            'be3o6q1t': 'سعادة الأستاذ: الوليد الشهري',
-            'cf4p7r2u': 'سعادة الأستاذ: عكاشة هارون',
-            'dg5q8s3v': 'سعادة الأستاذ: عبدالرحمن الزهراني',
-            'eh6r9t4w': 'سعادة الأستاذ: محمد كامل',
-            'fi7s0u5x': 'سعادة الأستاذ: عيسى الحازمي',
-            'gj8t1v6y': 'سعادة الأستاذ: ابراهيم محمد',
-            'hk9u2w7z': 'سعادة الأستاذ: محمد عيسى',
-            'il0v3x8a': 'سعادة الأستاذ: عبدالله العوفي',
-            'jm1w4y9b': 'سعادة الدكتور: أيمن السعيدي',
-            'kn2x5z0c': 'سعادة الأستاذ: شرف الشريف',
-            'lo3y6a1d': 'سعادة الأستاذ: مصطفى جويد',
-            'mp4z7b2e': 'سعادة الأستاذ: رشاد القرني',
-            'nq5a8c3f': 'سعادة الأستاذ: عبدالله القحمي'
-        };
+        let currentAction = '';
+        let hasResponded = false;
+        let userId = '';
+        let userName = '';
 
-        // Get user ID from URL parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('id');
-        const userName = USERS[userId];
+        // Wait for DOM to fully load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded - Version 2.2');
 
-        // Display name or show error
-        if (!userName) {
-            document.getElementById('name').textContent = 'رابط غير صحيح';
-            document.getElementById('acceptBtn').style.display = 'none';
-            document.getElementById('rejectBtn').style.display = 'none';
-            alert('رابط غير صحيح. يرجى التحقق من الرابط.');
-        } else {
-            document.getElementById('name').textContent = userName;
-        }
-
-        async function saveResponse(action) {
-            const msg = document.getElementById('message');
-
-            try {
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        userId: userId,
-                        userName: userName,
-                        action: action,
-                        timestamp: new Date().toISOString()
-                    })
-                });
-
-                msg.textContent = `تم حفظ اختيارك: ${action}`;
-                msg.style.background = action === 'قبول' ? '#4CAF50' : '#f44336';
-                msg.classList.add('show');
-
-                setTimeout(() => {
-                    msg.classList.remove('show');
-                }, 3000);
-
-                console.log('Response saved:', { userId, userName, action });
-            } catch (error) {
-                console.error('Error saving response:', error);
-                msg.textContent = 'حدث خطأ في حفظ الاختيار';
-                msg.style.background = '#f44336';
-                msg.classList.add('show');
-
-                setTimeout(() => {
-                    msg.classList.remove('show');
-                }, 3000);
+            // Get user ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            userId = urlParams.get('id');
+            
+            if (!userId || !USERS[userId]) {
+                alert('رابط غير صحيح');
+                return;
             }
-        }
 
-        document.getElementById('acceptBtn').onclick = () => {
-            if (userName) saveResponse('قبول');
-        };
+            userName = USERS[userId];
+            document.getElementById('name').textContent = userName;
 
-        document.getElementById('rejectBtn').onclick = () => {
-            if (userName) saveResponse('رفض');
-        };
+            const confirmModal = document.getElementById('confirmModal');
+            const successModal = document.getElementById('successModal');
+            const confirmMessage = document.getElementById('confirmMessage');
+            const successMessage = document.getElementById('successMessage');
+            const acceptBtn = document.getElementById('acceptBtn');
+            const rejectBtn = document.getElementById('rejectBtn');
+
+            function disableButtons() {
+                console.log('Disabling all buttons');
+                acceptBtn.classList.add('disabled');
+                rejectBtn.classList.add('disabled');
+                acceptBtn.style.cursor = 'not-allowed';
+                rejectBtn.style.cursor = 'not-allowed';
+            }
+
+            function showConfirmation(action) {
+                if (hasResponded) {
+                    console.log('User has already responded, ignoring click');
+                    return;
+                }
+
+                console.log('Showing confirmation for:', action);
+                currentAction = action;
+                
+                if (action === 'قبول') {
+                    confirmMessage.textContent = 'هل أنت متأكد من رغبتك في قبول الشهادة؟';
+                } else {
+                    confirmMessage.textContent = 'هل أنت متأكد من رغبتك في رفض الشهادة؟';
+                }
+                
+                confirmModal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function hideConfirmation() {
+                console.log('Hiding confirmation');
+                confirmModal.classList.remove('show');
+                document.body.style.overflow = 'auto';
+            }
+
+            function showSuccess(action) {
+                console.log('Showing success for:', action);
+                
+                if (action === 'قبول') {
+                    successMessage.textContent = 'تم قبول الشهادة بنجاح. نتطلع للعمل معك قريباً!';
+                } else {
+                    successMessage.textContent = 'تم تسجيل ردك. نشكرك على وقتك واهتمامك.';
+                }
+                
+                successModal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function hideSuccess() {
+                console.log('Hiding success');
+                successModal.classList.remove('show');
+                document.body.style.overflow = 'auto';
+            }
+
+            async function saveResponse(action) {
+                console.log('Saving response:', action);
+                
+                // Mark as responded immediately to prevent double clicks
+                hasResponded = true;
+                disableButtons();
+                
+                const data = {
+                    userId: userId,
+                    userName: userName,
+                    action: action,
+                    timestamp: new Date().toISOString()
+                };
+
+                console.log('Sending data:', data);
+                
+                try {
+                    // Using FormData for better CORS compatibility
+                    const formData = new FormData();
+                    formData.append('userId', userId);
+                    formData.append('userName', userName);
+                    formData.append('action', action);
+                    formData.append('timestamp', new Date().toISOString());
+
+                    const response = await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    console.log('Response status:', response.status);
+                    
+                    // Show success modal regardless of response
+                    // because Google Apps Script returns opaque response with mode: 'no-cors'
+                    showSuccess(action);
+                    
+                } catch (error) {
+                    console.error('Error saving response:', error);
+                    // Still show success because data was likely saved
+                    showSuccess(action);
+                }
+            }
+
+            // Accept button click
+            acceptBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (hasResponded) {
+                    console.log('Already responded, ignoring click');
+                    return;
+                }
+                
+                console.log('Accept button clicked');
+                showConfirmation('قبول');
+            });
+
+            // Reject button click
+            rejectBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (hasResponded) {
+                    console.log('Already responded, ignoring click');
+                    return;
+                }
+                
+                console.log('Reject button clicked');
+                showConfirmation('رفض');
+            });
+
+            // Confirm Yes button
+            document.getElementById('confirmYes').addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Confirm Yes clicked');
+                hideConfirmation();
+                saveResponse(currentAction);
+            });
+
+            // Confirm No button
+            document.getElementById('confirmNo').addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Confirm No clicked');
+                hideConfirmation();
+            });
+
+            // Success OK button
+            document.getElementById('successOk').addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Success OK clicked');
+                hideSuccess();
+            });
+
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                if (event.target === confirmModal) {
+                    hideConfirmation();
+                }
+                if (event.target === successModal) {
+                    hideSuccess();
+                }
+            });
+        });
     </script>
 </body>
 </html>

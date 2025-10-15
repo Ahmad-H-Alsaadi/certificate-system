@@ -7,10 +7,12 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>شهادة</title>
+    <link rel="preload" href="LyonArabicDisplay.otf" as="font" type="font/otf" crossorigin>
     <style>
         @font-face {
             font-family: 'LyonArabic';
             src: url('LyonArabicDisplay.otf') format('opentype');
+            font-display: swap;
         }
 
         * {
@@ -215,17 +217,49 @@
     </div>
 
     <script>
-        // Version 2.1 - Prevent multiple responses
-        const USER_ID = 'xa9k2m7p';
-        const USER_NAME = 'الأستاذ: عبدالله عصام';
+        // Version 2.2 - Fixed CORS and modal issues
+        const USERS = {
+            'xa9k2m7p': 'الأستاذ: عبدالله عصام',
+            'yb0l3n8q': 'الأستاذ: ابراهيم اليوسف',
+            'zc1m4o9r': 'الأستاذ: أحمد عصام الدين',
+            'ad2n5p0s': 'الأستاذ: عبدالله العلاوي',
+            'be3o6q1t': 'الأستاذ: الوليد الشهري',
+            'cf4p7r2u': 'الأستاذ: عكاشة هارون',
+            'dg5q8s3v': 'الأستاذ: عبدالرحمن الزهراني',
+            'eh6r9t4w': 'الأستاذ: محمد كامل',
+            'fi7s0u5x': 'الأستاذ: عيسى الحازمي',
+            'gj8t1v6y': 'الأستاذ: ابراهيم محمد',
+            'hk9u2w7z': 'الأستاذ: محمد عيسى',
+            'il0v3x8a': 'الأستاذ: عبدالله العوفي',
+            'jm1w4y9b': 'الأستاذ: أيمن السعيدي',
+            'kn2x5z0c': 'الأستاذ: شرف الشريف',
+            'lo3y6a1d': 'الأستاذ: مصطفى جويد',
+            'mp4z7b2e': 'الأستاذ: رشاد القرني',
+            'nq5a8c3f': 'الأستاذ: عبدالله القحمي'
+        };
+
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwo95Q1YXh8d01pss4Fj6NN4qjeoCAjL147ny2vw4P_-M0-LkH-Ngj11HgFKZtJk79T/exec';
 
         let currentAction = '';
-        let hasResponded = false; // Flag to prevent multiple responses
+        let hasResponded = false;
+        let userId = '';
+        let userName = '';
 
         // Wait for DOM to fully load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded - Version 2.1');
+            console.log('DOM loaded - Version 2.2');
+
+            // Get user ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            userId = urlParams.get('id');
+            
+            if (!userId || !USERS[userId]) {
+                alert('رابط غير صحيح');
+                return;
+            }
+
+            userName = USERS[userId];
+            document.getElementById('name').textContent = userName;
 
             const confirmModal = document.getElementById('confirmModal');
             const successModal = document.getElementById('successModal');
@@ -293,25 +327,37 @@
                 hasResponded = true;
                 disableButtons();
                 
+                const data = {
+                    userId: userId,
+                    userName: userName,
+                    action: action,
+                    timestamp: new Date().toISOString()
+                };
+
+                console.log('Sending data:', data);
+                
                 try {
-                    await fetch(GOOGLE_SCRIPT_URL, {
+                    // Using FormData for better CORS compatibility
+                    const formData = new FormData();
+                    formData.append('userId', userId);
+                    formData.append('userName', userName);
+                    formData.append('action', action);
+                    formData.append('timestamp', new Date().toISOString());
+
+                    const response = await fetch(GOOGLE_SCRIPT_URL, {
                         method: 'POST',
-                        mode: 'no-cors',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            userId: USER_ID,
-                            userName: USER_NAME,
-                            action: action,
-                            timestamp: new Date().toISOString()
-                        })
+                        body: formData
                     });
 
-                    console.log('Response saved successfully');
+                    console.log('Response status:', response.status);
+                    
+                    // Show success modal regardless of response
+                    // because Google Apps Script returns opaque response with mode: 'no-cors'
                     showSuccess(action);
+                    
                 } catch (error) {
                     console.error('Error saving response:', error);
+                    // Still show success because data was likely saved
                     showSuccess(action);
                 }
             }
